@@ -10,39 +10,92 @@ import { getAccessToken, refreshAccessToken } from './auth';
 
 const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
 
-type GoogleColorDefinition = {
-  background: string;
-  foreground: string;
+/**
+ * Modern Google Calendar Event Colors (vibrant, not the legacy API palette)
+ * These match the Google Calendar web UI appearance
+ */
+const MODERN_EVENT_COLORS: Record<string, { light: string; dark: string }> = {
+  '1':  { light: '#7986cb', dark: '#8e99f3' },  // Lavender
+  '2':  { light: '#33b679', dark: '#2bb673' },  // Sage
+  '3':  { light: '#8e24aa', dark: '#b39ddb' },  // Grape
+  '4':  { light: '#e67c73', dark: '#e67c73' },  // Flamingo
+  '5':  { light: '#f6bf26', dark: '#f09300' },  // Banana
+  '6':  { light: '#f4511e', dark: '#f4511e' },  // Tangerine
+  '7':  { light: '#039be5', dark: '#039be5' },  // Peacock
+  '8':  { light: '#616161', dark: '#757575' },  // Graphite
+  '9':  { light: '#3f51b5', dark: '#5c6bc0' },  // Blueberry
+  '10': { light: '#0b8043', dark: '#0b8043' },  // Basil
+  '11': { light: '#d50000', dark: '#d81b60' },  // Tomato
 };
 
-type GoogleColorsResponse = {
-  calendar?: Record<string, GoogleColorDefinition>;
-  event?: Record<string, GoogleColorDefinition>;
+/**
+ * Modern Google Calendar Colors (for calendars, IDs 1-24)
+ * Maps legacy API backgroundColor to modern vibrant equivalents
+ */
+const LEGACY_TO_MODERN_CALENDAR_COLORS: Record<string, { light: string; dark: string }> = {
+  '#ac725e': { light: '#795548', dark: '#8d6e63' },  // Cocoa
+  '#d06b64': { light: '#e67c73', dark: '#e67c73' },  // Flamingo
+  '#f83a22': { light: '#d50000', dark: '#e53935' },  // Tomato
+  '#fa573c': { light: '#f4511e', dark: '#f4511e' },  // Tangerine
+  '#ff7537': { light: '#ef6c00', dark: '#ff9800' },  // Pumpkin
+  '#ffad46': { light: '#f6bf26', dark: '#f09300' },  // Mango
+  '#42d692': { light: '#33b679', dark: '#2bb673' },  // Eucalyptus
+  '#16a765': { light: '#0b8043', dark: '#43a047' },  // Basil
+  '#7bd148': { light: '#7cb342', dark: '#8bc34a' },  // Pistachio
+  '#b3dc6c': { light: '#c0ca33', dark: '#d4e157' },  // Avocado
+  '#fbe983': { light: '#e4c441', dark: '#fdd835' },  // Citron
+  '#fad165': { light: '#f6bf26', dark: '#f09300' },  // Banana
+  '#92e1c0': { light: '#33b679', dark: '#57bb8a' },  // Sage
+  '#9fe1e7': { light: '#039be5', dark: '#4fc3f7' },  // Peacock
+  '#9fc6e7': { light: '#4285f4', dark: '#64b5f6' },  // Cobalt
+  '#4986e7': { light: '#3f51b5', dark: '#5c6bc0' },  // Blueberry
+  '#9a9cff': { light: '#7986cb', dark: '#8e99f3' },  // Lavender
+  '#b99aff': { light: '#b39ddb', dark: '#ce93d8' },  // Wisteria
+  '#c2c2c2': { light: '#616161', dark: '#757575' },  // Graphite
+  '#cabdbf': { light: '#a79b8e', dark: '#bcaaa4' },  // Birch
+  '#cca6ac': { light: '#ad1457', dark: '#c2185b' },  // Radicchio
+  '#f691b2': { light: '#d81b60', dark: '#ec407a' },  // Cherry
+  '#cd74e6': { light: '#8e24aa', dark: '#ab47bc' },  // Grape
+  '#a47ae2': { light: '#7b1fa2', dark: '#9c27b0' },  // Amethyst
+  // Additional common variations
+  '#007b83': { light: '#00796b', dark: '#26a69a' },  // Teal variant
 };
 
-async function fetchColorPalette(): Promise<GoogleColorsResponse> {
-  const response = await makeRequest('/colors');
-  return response.json();
-}
+const DEFAULT_COLOR = { light: '#039be5', dark: '#039be5' }; // Peacock
 
-async function fetchPrimaryCalendarInfo(): Promise<{ colorId?: string }> {
+async function fetchPrimaryCalendarInfo(): Promise<{ backgroundColor?: string }> {
   const response = await makeRequest('/users/me/calendarList/primary');
   const data = await response.json();
-  return { colorId: data.colorId };
+  return { backgroundColor: data.backgroundColor };
 }
 
 function resolveEventDisplayColor(
   eventColorId: string | undefined,
-  calendarColorId: string | undefined,
-  palette: GoogleColorsResponse
+  calendarBackgroundColor: string | undefined,
+  isDarkMode: boolean = false
 ): string {
-  const eventColor = eventColorId ? palette.event?.[eventColorId]?.background : undefined;
-  if (eventColor) return eventColor;
+  // 1. If event has colorId, use modern event palette
+  if (eventColorId && MODERN_EVENT_COLORS[eventColorId]) {
+    const color = isDarkMode 
+      ? MODERN_EVENT_COLORS[eventColorId].dark 
+      : MODERN_EVENT_COLORS[eventColorId].light;
+    return color;
+  }
 
-  const calendarColor = calendarColorId ? palette.calendar?.[calendarColorId]?.background : undefined;
-  if (calendarColor) return calendarColor;
+  // 2. If no event colorId, map calendar backgroundColor to modern equivalent
+  if (calendarBackgroundColor) {
+    const lowerBg = calendarBackgroundColor.toLowerCase();
+    if (LEGACY_TO_MODERN_CALENDAR_COLORS[lowerBg]) {
+      const color = isDarkMode
+        ? LEGACY_TO_MODERN_CALENDAR_COLORS[lowerBg].dark
+        : LEGACY_TO_MODERN_CALENDAR_COLORS[lowerBg].light;
+      return color;
+    }
+    // If not in map, return original (might be custom)
+    return calendarBackgroundColor;
+  }
 
-  return EVENT_COLORS.default.hex;
+  return isDarkMode ? DEFAULT_COLOR.dark : DEFAULT_COLOR.light;
 }
 
 // ---------------------------
@@ -52,8 +105,7 @@ function resolveEventDisplayColor(
  */
 function transformGoogleEvent(
   googleEvent: GoogleCalendarEvent,
-  colorPalette: GoogleColorsResponse,
-  calendarColorId?: string
+  calendarBackgroundColor?: string
 ): CalendarEvent {
   const startDate = googleEvent.start.dateTime
     ? new Date(googleEvent.start.dateTime)
@@ -65,10 +117,11 @@ function transformGoogleEvent(
 
   // Default setup
   let color: CalendarEvent['color'] = 'default';
+  // Using light mode colors for now; dark mode handled in UI
   const displayColor = resolveEventDisplayColor(
     googleEvent.colorId,
-    calendarColorId,
-    colorPalette
+    calendarBackgroundColor,
+    false // Light mode - dark mode styling handled in UI layer
   );
 
   return {
@@ -178,8 +231,6 @@ export async function fetchCalendarEvents(
     const timeMin = startDate.toISOString();
     const timeMax = endDate.toISOString();
 
-    const colorPalette = await fetchColorPalette();
-
     const calendarsResponse = await makeRequest('/users/me/calendarList');
     const calendarsData = await calendarsResponse.json();
     const calendars = calendarsData.items || [];
@@ -198,7 +249,7 @@ export async function fetchCalendarEvents(
         );
         const data: CalendarEventsResponse = await response.json();
         return (data.items || []).map(item =>
-          transformGoogleEvent(item, colorPalette, calendar.colorId)
+          transformGoogleEvent(item, calendar.backgroundColor)
         );
       } catch (err) {
         console.warn(`Failed to fetch events for calendar ${calendar.summary}`, err);
@@ -229,11 +280,8 @@ export async function createEvent(eventData: CreateEventData): Promise<CalendarE
       body: JSON.stringify(googleEvent),
     });
     const createdEvent: GoogleCalendarEvent = await response.json();
-    const [colorPalette, primaryCalendar] = await Promise.all([
-      fetchColorPalette(),
-      fetchPrimaryCalendarInfo(),
-    ]);
-    return transformGoogleEvent(createdEvent, colorPalette, primaryCalendar.colorId);
+    const primaryCalendar = await fetchPrimaryCalendarInfo();
+    return transformGoogleEvent(createdEvent, primaryCalendar.backgroundColor);
   } catch (error) {
     console.error('Error creating event:', error);
     throw error;
@@ -249,11 +297,8 @@ export async function updateEvent(eventData: UpdateEventData): Promise<CalendarE
       body: JSON.stringify(googleEvent),
     });
     const updatedEvent: GoogleCalendarEvent = await response.json();
-    const [colorPalette, primaryCalendar] = await Promise.all([
-      fetchColorPalette(),
-      fetchPrimaryCalendarInfo(),
-    ]);
-    return transformGoogleEvent(updatedEvent, colorPalette, primaryCalendar.colorId);
+    const primaryCalendar = await fetchPrimaryCalendarInfo();
+    return transformGoogleEvent(updatedEvent, primaryCalendar.backgroundColor);
   } catch (error) {
     console.error('Error updating event:', error);
     throw error;
@@ -273,11 +318,8 @@ export async function getEvent(eventId: string): Promise<CalendarEvent> {
   try {
     const response = await makeRequest(`/calendars/primary/events/${eventId}`);
     const googleEvent: GoogleCalendarEvent = await response.json();
-    const [colorPalette, primaryCalendar] = await Promise.all([
-      fetchColorPalette(),
-      fetchPrimaryCalendarInfo(),
-    ]);
-    return transformGoogleEvent(googleEvent, colorPalette, primaryCalendar.colorId);
+    const primaryCalendar = await fetchPrimaryCalendarInfo();
+    return transformGoogleEvent(googleEvent, primaryCalendar.backgroundColor);
   } catch (error) {
     console.error('Error fetching event:', error);
     throw error;
