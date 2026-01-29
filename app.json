@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "SecondBrain",
+    "slug": "SecondBrain",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": ["secondbrain", "com.googleusercontent.apps.769894456153-bfven94mmlqj3htlrda1hdo9cf4hru0r"],
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.itayacohen.appSecondBrain"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.itayacohen.appSecondBrain"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "./plugins/withAndroidIntent",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cec5ec38-890c-47b3-b2df-e6a7999c48a0"
+      }
+    },
+    "owner": "itay.a.cohen",
+    "updates": {
+      "url": "https://u.expo.dev/cec5ec38-890c-47b3-b2df-e6a7999c48a0"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}
