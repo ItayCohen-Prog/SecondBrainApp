@@ -6,12 +6,15 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 interface EventPillProps {
   event: CalendarEvent;
   onPress?: (event: CalendarEvent) => void;
+  onToggleTask?: (task: CalendarEvent) => void;
   maxWidth?: number;
 }
 
-export function EventPill({ event, onPress, maxWidth }: EventPillProps) {
+export function EventPill({ event, onPress, onToggleTask, maxWidth }: EventPillProps) {
   // STRICTLY use displayColor (exact hex). Fallback to default blue ONLY if displayColor is missing.
   const backgroundColor = event.displayColor || EVENT_COLORS.default.hex;
+  const isTask = event.itemType === 'task';
+  const isTaskCompleted = isTask && event.taskStatus === 'completed';
 
   // Determine icon based on event properties
   let iconName: string | null = null;
@@ -48,6 +51,18 @@ export function EventPill({ event, onPress, maxWidth }: EventPillProps) {
         maxWidth && { maxWidth },
       ]}>
       <View style={styles.pillContent}>
+        {isTask && (
+          <TouchableOpacity
+            onPress={() => onToggleTask?.(event)}
+            activeOpacity={0.7}
+            style={styles.checkboxButton}>
+            <IconSymbol
+              name={isTaskCompleted ? 'checkmark.circle.fill' : 'circle'}
+              size={12}
+              color="#fff"
+            />
+          </TouchableOpacity>
+        )}
         {iconName && (
           <IconSymbol
             name={iconName}
@@ -56,7 +71,9 @@ export function EventPill({ event, onPress, maxWidth }: EventPillProps) {
             style={styles.icon}
           />
         )}
-        <ThemedText style={styles.pillText} numberOfLines={1}>
+        <ThemedText
+          style={[styles.pillText, isTaskCompleted && styles.completedText]}
+          numberOfLines={1}>
           {displayTitle}
         </ThemedText>
         {timeStr && (
@@ -99,12 +116,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
+  completedText: {
+    textDecorationLine: 'line-through',
+    opacity: 0.8,
+  },
   timeText: {
     color: '#fff',
     fontSize: 10,
     opacity: 0.9,
   },
   icon: {
+    marginRight: 2,
+  },
+  checkboxButton: {
     marginRight: 2,
   },
 });

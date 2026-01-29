@@ -40,6 +40,7 @@ const SCOPES = [
   'profile', 
   'email',
   'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/tasks',
 ];
 
 // Google OAuth discovery document
@@ -61,6 +62,11 @@ export async function signInWithGoogle(): Promise<AuthState> {
       redirectUri: REDIRECT_URI,
       responseType: AuthSession.ResponseType.Code,
       usePKCE: true, // Required for public clients
+      extraParams: {
+        prompt: 'consent',
+        access_type: 'offline',
+        include_granted_scopes: 'true',
+      },
     });
 
     // Prompt the user to authenticate

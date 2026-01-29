@@ -4,11 +4,15 @@ import {
   CreateEventData,
   EVENT_COLORS,
   GoogleCalendarEvent,
+  GoogleTask,
+  GoogleTaskList,
+  TaskStatus,
   UpdateEventData,
 } from '@/types/calendar';
 import { getAccessToken, refreshAccessToken } from './auth';
 
 const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
+const TASKS_API_BASE = 'https://tasks.googleapis.com/tasks/v1';
 
 /**
  * Modern Google Calendar Event Colors (vibrant, not the legacy API palette)
@@ -126,6 +130,7 @@ function transformGoogleEvent(
 
   return {
     id: googleEvent.id,
+    itemType: 'event',
     title: googleEvent.summary || 'Untitled Event',
     description: googleEvent.description,
     startDate,
@@ -136,6 +141,34 @@ function transformGoogleEvent(
     isAllDay,
     htmlLink: googleEvent.htmlLink,
     attendees: googleEvent.attendees,
+  };
+}
+
+function transformGoogleTask(
+  googleTask: GoogleTask,
+  taskListId: string
+): CalendarEvent | null {
+  if (!googleTask.due) {
+    return null;
+  }
+
+  const dueDate = new Date(googleTask.due);
+  const taskStatus: TaskStatus = googleTask.status ?? 'needsAction';
+
+  return {
+    id: googleTask.id,
+    itemType: 'task',
+    title: googleTask.title || 'Untitled Task',
+    description: googleTask.notes,
+    startDate: dueDate,
+    endDate: dueDate,
+    location: undefined,
+    color: 'default',
+    displayColor: EVENT_COLORS.default.hex,
+    isAllDay: true,
+    taskStatus,
+    taskListId,
+    taskCompletedAt: googleTask.completed ? new Date(googleTask.completed) : undefined,
   };
 }
 
@@ -220,6 +253,48 @@ async function makeRequest(
   return response;
 }
 
+async function makeTasksRequest(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  let accessToken = await getAccessToken();
+  if (!accessToken) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${TASKS_API_BASE}${endpoint}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (response.status === 401) {
+    const newToken = await refreshAccessToken();
+    if (!newToken) {
+      throw new Error('Authentication failed');
+    }
+
+    return fetch(`${TASKS_API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${newToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error?.message || `API error: ${response.status}`);
+  }
+
+  return response;
+}
+
 /**
  * Fetch calendar events for a date range
  */
@@ -268,6 +343,71 @@ export async function fetchCalendarEvents(
     return allEvents;
   } catch (error) {
     console.error('Error fetching calendar events:', error);
+    throw error;
+  }
+}
+
+export async function fetchTaskItems(
+  startDate: Date,
+  endDate: Date
+): Promise<CalendarEvent[]> {
+  try {
+    const dueMin = startDate.toISOString();
+    const dueMax = endDate.toISOString();
+
+    const listsResponse = await makeTasksRequest('/users/@me/lists');
+    const listsData = await listsResponse.json();
+    const lists: GoogleTaskList[] = listsData.items || [];
+
+    const taskPromises = lists.map(async (list) => {
+      try {
+        const response = await makeTasksRequest(
+          `/lists/${encodeURIComponent(list.id)}/tasks?showCompleted=true&showHidden=true&showDeleted=false&dueMin=${encodeURIComponent(dueMin)}&dueMax=${encodeURIComponent(dueMax)}`
+        );
+        const data = await response.json();
+        return (data.items || [])
+          .map((task: GoogleTask) => transformGoogleTask(task, list.id))
+          .filter(Boolean) as CalendarEvent[];
+      } catch (err) {
+        console.warn(`Failed to fetch tasks for list ${list.title}`, err);
+        return [];
+      }
+    });
+
+    const results = await Promise.all(taskPromises);
+    return results.flat();
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    throw error;
+  }
+}
+
+export async function updateTaskCompletion(
+  taskListId: string,
+  taskId: string,
+  isCompleted: boolean
+): Promise<CalendarEvent> {
+  try {
+    const payload: Partial<GoogleTask> = {
+      status: isCompleted ? 'completed' : 'needsAction',
+      completed: isCompleted ? new Date().toISOString() : undefined,
+    };
+
+    const response = await makeTasksRequest(
+      `/lists/${encodeURIComponent(taskListId)}/tasks/${encodeURIComponent(taskId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }
+    );
+    const updatedTask: GoogleTask = await response.json();
+    const transformed = transformGoogleTask(updatedTask, taskListId);
+    if (!transformed) {
+      throw new Error('Task is missing a due date');
+    }
+    return transformed;
+  } catch (error) {
+    console.error('Error updating task:', error);
     throw error;
   }
 }

@@ -39,6 +39,7 @@ export default function CalendarScreen() {
     addEvent,
     updateEvent,
     deleteEvent,
+    toggleTaskComplete,
     refresh,
   } = useCalendarEvents({
     startDate,
@@ -52,6 +53,9 @@ export default function CalendarScreen() {
   };
 
   const handleEventPress = (event: CalendarEvent) => {
+    if (event.itemType === 'task') {
+      return;
+    }
     setSelectedEvent(event);
     setModalVisible(true);
   };
@@ -71,6 +75,10 @@ export default function CalendarScreen() {
 
   const handleDeleteEvent = async (eventId: string) => {
     await deleteEvent(eventId);
+  };
+
+  const handleToggleTask = async (task: CalendarEvent) => {
+    await toggleTaskComplete(task);
   };
 
   const handleSignOut = async () => {
@@ -123,6 +131,7 @@ export default function CalendarScreen() {
           events={events}
           onDayPress={handleDayPress}
           onEventPress={handleEventPress}
+          onToggleTask={handleToggleTask}
           currentDate={selectedDate}
         />
       </ScrollView>

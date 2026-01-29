@@ -1,15 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
 import {
-  CalendarEvent,
-  CreateEventData,
-  UpdateEventData,
-} from '@/types/calendar';
-import {
-  fetchCalendarEvents,
-  createEvent,
-  updateEvent as updateCalendarEvent,
-  deleteEvent as deleteCalendarEvent,
+    createEvent,
+    deleteEvent as deleteCalendarEvent,
+    fetchCalendarEvents,
+    fetchTaskItems,
+    updateEvent as updateCalendarEvent,
+    updateTaskCompletion,
 } from '@/services/calendar';
+import {
+    CalendarEvent,
+    CreateEventData,
+    UpdateEventData,
+} from '@/types/calendar';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UseCalendarEventsOptions {
   startDate: Date;
@@ -27,8 +29,26 @@ export function useCalendarEvents(options: UseCalendarEventsOptions) {
     try {
       setIsLoading(true);
       setError(null);
-      const fetchedEvents = await fetchCalendarEvents(startDate, endDate);
-      setEvents(fetchedEvents);
+      const [eventsResult, tasksResult] = await Promise.allSettled([
+        fetchCalendarEvents(startDate, endDate),
+        fetchTaskItems(startDate, endDate),
+      ]);
+
+      if (eventsResult.status === 'rejected') {
+        throw eventsResult.reason;
+      }
+
+      if (tasksResult.status === 'rejected') {
+        console.warn('Failed to load tasks:', tasksResult.reason);
+      }
+
+      const fetchedEvents = eventsResult.value;
+      const fetchedTasks = tasksResult.status === 'fulfilled' ? tasksResult.value : [];
+
+      const merged = [...fetchedEvents, ...fetchedTasks].sort(
+        (a, b) => a.startDate.getTime() - b.startDate.getTime()
+      );
+      setEvents(merged);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to load events');
       setError(error);
@@ -102,6 +122,35 @@ export function useCalendarEvents(options: UseCalendarEventsOptions) {
     []
   );
 
+  const toggleTaskComplete = useCallback(
+    async (task: CalendarEvent) => {
+      if (task.itemType !== 'task' || !task.taskListId) {
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const isCompleted = task.taskStatus !== 'completed';
+        const updatedTask = await updateTaskCompletion(
+          task.taskListId,
+          task.id,
+          isCompleted
+        );
+        setEvents((prev) =>
+          prev.map((event) => (event.id === updatedTask.id ? updatedTask : event))
+        );
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Failed to update task');
+        setError(error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
   const getEventsForDate = useCallback(
     (date: Date) => {
       const dateStr = date.toDateString();
@@ -123,6 +172,7 @@ export function useCalendarEvents(options: UseCalendarEventsOptions) {
     addEvent,
     updateEvent,
     deleteEvent,
+    toggleTaskComplete,
     getEventsForDate,
     refresh: loadEvents,
   };

@@ -33,8 +33,25 @@ export interface GoogleCalendarEvent {
   };
 }
 
+export interface GoogleTaskList {
+  id: string;
+  title: string;
+}
+
+export type TaskStatus = 'needsAction' | 'completed';
+
+export interface GoogleTask {
+  id: string;
+  title: string;
+  notes?: string;
+  due?: string;
+  status?: TaskStatus;
+  completed?: string;
+}
+
 export interface CalendarEvent {
   id: string;
+  itemType: 'event' | 'task';
   title: string;
   description?: string;
   startDate: Date;
@@ -44,6 +61,9 @@ export interface CalendarEvent {
   displayColor?: string; // The exact hex color for display
   isAllDay: boolean;
   htmlLink?: string;
+  taskStatus?: TaskStatus;
+  taskListId?: string;
+  taskCompletedAt?: Date;
   attendees?: Array<{
     email: string;
     displayName?: string;

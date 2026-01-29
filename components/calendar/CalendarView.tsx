@@ -12,6 +12,7 @@ interface CalendarViewProps {
   events: CalendarEvent[];
   onDayPress?: (date: DateData) => void;
   onEventPress?: (event: CalendarEvent) => void;
+  onToggleTask?: (task: CalendarEvent) => void;
   currentDate?: Date;
 }
 
@@ -19,6 +20,7 @@ export function CalendarView({
   events,
   onDayPress,
   onEventPress,
+  onToggleTask,
   currentDate = new Date(),
 }: CalendarViewProps) {
   const colorScheme = useColorScheme();
@@ -157,6 +159,7 @@ export function CalendarView({
   };
 
   const selectedDateEvents = eventsByDate[selectedDate] || [];
+  const selectedEventCount = selectedDateEvents.length;
 
   const theme = {
     backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
@@ -196,16 +199,17 @@ export function CalendarView({
       />
       <View style={styles.eventsContainer}>
         <ThemedText type="subtitle" style={styles.eventsTitle}>
-          {selectedDateEvents.length > 0
-            ? `${selectedDateEvents.length} event${selectedDateEvents.length > 1 ? 's' : ''}`
-            : 'No events'}
+          {selectedEventCount > 0
+            ? `${selectedEventCount} item${selectedEventCount > 1 ? 's' : ''}`
+            : 'No items'}
         </ThemedText>
         <ScrollView style={styles.eventsList}>
           {selectedDateEvents.map((event) => (
             <EventPill
-              key={event.id}
+              key={`${event.itemType}-${event.id}`}
               event={event}
-              onPress={onEventPress}
+              onPress={event.itemType === 'event' ? onEventPress : undefined}
+              onToggleTask={onToggleTask}
             />
           ))}
         </ScrollView>
