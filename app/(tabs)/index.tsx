@@ -40,6 +40,7 @@ export default function CalendarScreen() {
     updateEvent,
     deleteEvent,
     toggleTaskComplete,
+    isTaskToggling,
     refresh,
   } = useCalendarEvents({
     startDate,
@@ -116,9 +117,7 @@ export default function CalendarScreen() {
 
       <ScrollView
         style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refresh} />
-        }>
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refresh} />}>
         {error && (
           <ThemedView style={[styles.errorContainer, { backgroundColor: errorBackgroundColor }]}>
             <ThemedText style={[styles.errorText, { color: errorTextColor }]}>
@@ -132,14 +131,12 @@ export default function CalendarScreen() {
           onDayPress={handleDayPress}
           onEventPress={handleEventPress}
           onToggleTask={handleToggleTask}
+          isTaskToggling={isTaskToggling}
           currentDate={selectedDate}
         />
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={handleCreateEvent}
-        activeOpacity={0.8}>
+      <TouchableOpacity style={styles.fab} onPress={handleCreateEvent} activeOpacity={0.8}>
         <IconSymbol name="plus" size={28} color="#fff" />
       </TouchableOpacity>
 

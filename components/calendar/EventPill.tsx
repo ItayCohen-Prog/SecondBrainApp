@@ -1,20 +1,24 @@
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { CalendarEvent, EVENT_COLORS } from '@/types/calendar';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface EventPillProps {
   event: CalendarEvent;
   onPress?: (event: CalendarEvent) => void;
   onToggleTask?: (task: CalendarEvent) => void;
+  isToggling?: boolean;
   maxWidth?: number;
 }
 
-export function EventPill({ event, onPress, onToggleTask, maxWidth }: EventPillProps) {
+export function EventPill({ event, onPress, onToggleTask, isToggling, maxWidth }: EventPillProps) {
   // STRICTLY use displayColor (exact hex). Fallback to default blue ONLY if displayColor is missing.
-  const backgroundColor = event.displayColor || EVENT_COLORS.default.hex;
+  const baseColor = event.displayColor || EVENT_COLORS.default.hex;
   const isTask = event.itemType === 'task';
   const isTaskCompleted = isTask && event.taskStatus === 'completed';
+
+  // Tasks get a slightly different appearance - lighter background with border
+  const backgroundColor = isTask ? `${baseColor}CC` : baseColor; // CC = 80% opacity for tasks
 
   // Determine icon based on event properties
   let iconName: string | null = null;
@@ -29,14 +33,14 @@ export function EventPill({ event, onPress, onToggleTask, maxWidth }: EventPillP
     if (event.isAllDay) {
       return '';
     }
-    
+
     // Use getHours/getMinutes which always return local time
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const hours12 = hours % 12 || 12;
     const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
-    
+
     return `${hours12}:${minutesStr} ${ampm}`;
   };
 
@@ -45,32 +49,35 @@ export function EventPill({ event, onPress, onToggleTask, maxWidth }: EventPillP
 
   const content = (
     <View
+      testID={isTask ? `task-pill-${event.id}` : `event-pill-${event.id}`}
       style={[
         styles.pill,
         { backgroundColor },
-        maxWidth && { maxWidth },
+        isTask ? styles.taskPill : undefined,
+        isTask ? { borderColor: baseColor } : undefined,
+        maxWidth ? { maxWidth } : undefined,
       ]}>
       <View style={styles.pillContent}>
         {isTask && (
           <TouchableOpacity
-            onPress={() => onToggleTask?.(event)}
+            testID={`task-checkbox-${event.id}`}
+            onPress={() => !isToggling && onToggleTask?.(event)}
             activeOpacity={0.7}
-            style={styles.checkboxButton}>
-            <IconSymbol
-              name={isTaskCompleted ? 'checkmark.circle.fill' : 'circle'}
-              size={12}
-              color="#fff"
-            />
+            disabled={isToggling}
+            style={styles.checkboxButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}>
+            {isToggling ? (
+              <ActivityIndicator size={12} color="#fff" />
+            ) : (
+              <IconSymbol
+                name={isTaskCompleted ? 'checkmark.circle.fill' : 'circle'}
+                size={14}
+                color="#fff"
+              />
+            )}
           </TouchableOpacity>
         )}
-        {iconName && (
-          <IconSymbol
-            name={iconName}
-            size={12}
-            color="#fff"
-            style={styles.icon}
-          />
-        )}
+        {iconName && <IconSymbol name={iconName} size={12} color="#fff" style={styles.icon} />}
         <ThemedText
           style={[styles.pillText, isTaskCompleted && styles.completedText]}
           numberOfLines={1}>
@@ -99,36 +106,41 @@ export function EventPill({ event, onPress, onToggleTask, maxWidth }: EventPillP
 const styles = StyleSheet.create({
   pill: {
     borderRadius: 4,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    marginVertical: 1,
-    minHeight: 18,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginVertical: 2,
+    minHeight: 24,
     justifyContent: 'center',
+  },
+  taskPill: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
   },
   pillContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   pillText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     flex: 1,
   },
   completedText: {
     textDecorationLine: 'line-through',
-    opacity: 0.8,
+    opacity: 0.7,
   },
   timeText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 11,
     opacity: 0.9,
   },
   icon: {
     marginRight: 2,
   },
   checkboxButton: {
+    padding: 2,
     marginRight: 2,
   },
 });

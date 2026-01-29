@@ -13,6 +13,7 @@ interface CalendarViewProps {
   onDayPress?: (date: DateData) => void;
   onEventPress?: (event: CalendarEvent) => void;
   onToggleTask?: (task: CalendarEvent) => void;
+  isTaskToggling?: (taskId: string) => boolean;
   currentDate?: Date;
 }
 
@@ -21,13 +22,12 @@ export function CalendarView({
   onDayPress,
   onEventPress,
   onToggleTask,
+  isTaskToggling,
   currentDate = new Date(),
 }: CalendarViewProps) {
   const colorScheme = useColorScheme();
   const borderColor = useThemeColor({}, 'border');
-  const [selectedDate, setSelectedDate] = useState(
-    currentDate.toISOString().split('T')[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(currentDate.toISOString().split('T')[0]);
 
   // Group events by date and sort by start time within each day
   const eventsByDate = useMemo(() => {
@@ -46,7 +46,7 @@ export function CalendarView({
       }
       grouped[dateKey].push(event);
     });
-    
+
     // Sort events within each day by start time (all-day events first, then by time)
     Object.values(grouped).forEach((dayEvents) => {
       dayEvents.sort((a, b) => {
@@ -57,7 +57,7 @@ export function CalendarView({
         return a.startDate.getTime() - b.startDate.getTime();
       });
     });
-    
+
     return grouped;
   }, [events]);
 
@@ -99,11 +99,7 @@ export function CalendarView({
     });
 
     // Ensure all days in the current month get the correct text color
-    for (
-      let day = new Date(monthStart);
-      day <= monthEnd;
-      day.setDate(day.getDate() + 1)
-    ) {
+    for (let day = new Date(monthStart); day <= monthEnd; day.setDate(day.getDate() + 1)) {
       const dateKey = day.toISOString().split('T')[0];
       if (!marked[dateKey]) {
         marked[dateKey] = {
@@ -210,6 +206,7 @@ export function CalendarView({
               event={event}
               onPress={event.itemType === 'event' ? onEventPress : undefined}
               onToggleTask={onToggleTask}
+              isToggling={event.itemType === 'task' && isTaskToggling?.(event.id)}
             />
           ))}
         </ScrollView>

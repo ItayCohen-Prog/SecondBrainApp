@@ -19,17 +19,17 @@ const TASKS_API_BASE = 'https://tasks.googleapis.com/tasks/v1';
  * These match the Google Calendar web UI appearance
  */
 const MODERN_EVENT_COLORS: Record<string, { light: string; dark: string }> = {
-  '1':  { light: '#7986cb', dark: '#8e99f3' },  // Lavender
-  '2':  { light: '#33b679', dark: '#2bb673' },  // Sage
-  '3':  { light: '#8e24aa', dark: '#b39ddb' },  // Grape
-  '4':  { light: '#e67c73', dark: '#e67c73' },  // Flamingo
-  '5':  { light: '#f6bf26', dark: '#f09300' },  // Banana
-  '6':  { light: '#f4511e', dark: '#f4511e' },  // Tangerine
-  '7':  { light: '#039be5', dark: '#039be5' },  // Peacock
-  '8':  { light: '#616161', dark: '#757575' },  // Graphite
-  '9':  { light: '#3f51b5', dark: '#5c6bc0' },  // Blueberry
-  '10': { light: '#0b8043', dark: '#0b8043' },  // Basil
-  '11': { light: '#d50000', dark: '#d81b60' },  // Tomato
+  '1': { light: '#7986cb', dark: '#8e99f3' }, // Lavender
+  '2': { light: '#33b679', dark: '#2bb673' }, // Sage
+  '3': { light: '#8e24aa', dark: '#b39ddb' }, // Grape
+  '4': { light: '#e67c73', dark: '#e67c73' }, // Flamingo
+  '5': { light: '#f6bf26', dark: '#f09300' }, // Banana
+  '6': { light: '#f4511e', dark: '#f4511e' }, // Tangerine
+  '7': { light: '#039be5', dark: '#039be5' }, // Peacock
+  '8': { light: '#616161', dark: '#757575' }, // Graphite
+  '9': { light: '#3f51b5', dark: '#5c6bc0' }, // Blueberry
+  '10': { light: '#0b8043', dark: '#0b8043' }, // Basil
+  '11': { light: '#d50000', dark: '#d81b60' }, // Tomato
 };
 
 /**
@@ -37,32 +37,32 @@ const MODERN_EVENT_COLORS: Record<string, { light: string; dark: string }> = {
  * Maps legacy API backgroundColor to modern vibrant equivalents
  */
 const LEGACY_TO_MODERN_CALENDAR_COLORS: Record<string, { light: string; dark: string }> = {
-  '#ac725e': { light: '#795548', dark: '#8d6e63' },  // Cocoa
-  '#d06b64': { light: '#e67c73', dark: '#e67c73' },  // Flamingo
-  '#f83a22': { light: '#d50000', dark: '#e53935' },  // Tomato
-  '#fa573c': { light: '#f4511e', dark: '#f4511e' },  // Tangerine
-  '#ff7537': { light: '#ef6c00', dark: '#ff9800' },  // Pumpkin
-  '#ffad46': { light: '#f6bf26', dark: '#f09300' },  // Mango
-  '#42d692': { light: '#33b679', dark: '#2bb673' },  // Eucalyptus
-  '#16a765': { light: '#0b8043', dark: '#43a047' },  // Basil
-  '#7bd148': { light: '#7cb342', dark: '#8bc34a' },  // Pistachio
-  '#b3dc6c': { light: '#c0ca33', dark: '#d4e157' },  // Avocado
-  '#fbe983': { light: '#e4c441', dark: '#fdd835' },  // Citron
-  '#fad165': { light: '#f6bf26', dark: '#f09300' },  // Banana
-  '#92e1c0': { light: '#33b679', dark: '#57bb8a' },  // Sage
-  '#9fe1e7': { light: '#039be5', dark: '#4fc3f7' },  // Peacock
-  '#9fc6e7': { light: '#4285f4', dark: '#64b5f6' },  // Cobalt
-  '#4986e7': { light: '#3f51b5', dark: '#5c6bc0' },  // Blueberry
-  '#9a9cff': { light: '#7986cb', dark: '#8e99f3' },  // Lavender
-  '#b99aff': { light: '#b39ddb', dark: '#ce93d8' },  // Wisteria
-  '#c2c2c2': { light: '#616161', dark: '#757575' },  // Graphite
-  '#cabdbf': { light: '#a79b8e', dark: '#bcaaa4' },  // Birch
-  '#cca6ac': { light: '#ad1457', dark: '#c2185b' },  // Radicchio
-  '#f691b2': { light: '#d81b60', dark: '#ec407a' },  // Cherry
-  '#cd74e6': { light: '#8e24aa', dark: '#ab47bc' },  // Grape
-  '#a47ae2': { light: '#7b1fa2', dark: '#9c27b0' },  // Amethyst
+  '#ac725e': { light: '#795548', dark: '#8d6e63' }, // Cocoa
+  '#d06b64': { light: '#e67c73', dark: '#e67c73' }, // Flamingo
+  '#f83a22': { light: '#d50000', dark: '#e53935' }, // Tomato
+  '#fa573c': { light: '#f4511e', dark: '#f4511e' }, // Tangerine
+  '#ff7537': { light: '#ef6c00', dark: '#ff9800' }, // Pumpkin
+  '#ffad46': { light: '#f6bf26', dark: '#f09300' }, // Mango
+  '#42d692': { light: '#33b679', dark: '#2bb673' }, // Eucalyptus
+  '#16a765': { light: '#0b8043', dark: '#43a047' }, // Basil
+  '#7bd148': { light: '#7cb342', dark: '#8bc34a' }, // Pistachio
+  '#b3dc6c': { light: '#c0ca33', dark: '#d4e157' }, // Avocado
+  '#fbe983': { light: '#e4c441', dark: '#fdd835' }, // Citron
+  '#fad165': { light: '#f6bf26', dark: '#f09300' }, // Banana
+  '#92e1c0': { light: '#33b679', dark: '#57bb8a' }, // Sage
+  '#9fe1e7': { light: '#039be5', dark: '#4fc3f7' }, // Peacock
+  '#9fc6e7': { light: '#4285f4', dark: '#64b5f6' }, // Cobalt
+  '#4986e7': { light: '#3f51b5', dark: '#5c6bc0' }, // Blueberry
+  '#9a9cff': { light: '#7986cb', dark: '#8e99f3' }, // Lavender
+  '#b99aff': { light: '#b39ddb', dark: '#ce93d8' }, // Wisteria
+  '#c2c2c2': { light: '#616161', dark: '#757575' }, // Graphite
+  '#cabdbf': { light: '#a79b8e', dark: '#bcaaa4' }, // Birch
+  '#cca6ac': { light: '#ad1457', dark: '#c2185b' }, // Radicchio
+  '#f691b2': { light: '#d81b60', dark: '#ec407a' }, // Cherry
+  '#cd74e6': { light: '#8e24aa', dark: '#ab47bc' }, // Grape
+  '#a47ae2': { light: '#7b1fa2', dark: '#9c27b0' }, // Amethyst
   // Additional common variations
-  '#007b83': { light: '#00796b', dark: '#26a69a' },  // Teal variant
+  '#007b83': { light: '#00796b', dark: '#26a69a' }, // Teal variant
 };
 
 const DEFAULT_COLOR = { light: '#039be5', dark: '#039be5' }; // Peacock
@@ -80,8 +80,8 @@ function resolveEventDisplayColor(
 ): string {
   // 1. If event has colorId, use modern event palette
   if (eventColorId && MODERN_EVENT_COLORS[eventColorId]) {
-    const color = isDarkMode 
-      ? MODERN_EVENT_COLORS[eventColorId].dark 
+    const color = isDarkMode
+      ? MODERN_EVENT_COLORS[eventColorId].dark
       : MODERN_EVENT_COLORS[eventColorId].light;
     return color;
   }
@@ -137,22 +137,34 @@ function transformGoogleEvent(
     endDate,
     location: googleEvent.location,
     color,
-    displayColor, 
+    displayColor,
     isAllDay,
     htmlLink: googleEvent.htmlLink,
     attendees: googleEvent.attendees,
   };
 }
 
-function transformGoogleTask(
-  googleTask: GoogleTask,
-  taskListId: string
-): CalendarEvent | null {
+/**
+ * Parse a Google Tasks due date as a local calendar day.
+ * Google Tasks returns dates like "2026-01-30T00:00:00.000Z" representing
+ * "due on January 30th" regardless of timezone. We extract the date portion
+ * and create a local midnight date to display on the correct calendar day.
+ */
+function parseTaskDueDate(dueString: string): Date {
+  // Extract YYYY-MM-DD from the ISO string
+  const datePart = dueString.split('T')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  // Create local midnight date (month is 0-indexed)
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
+function transformGoogleTask(googleTask: GoogleTask, taskListId: string): CalendarEvent | null {
   if (!googleTask.due) {
     return null;
   }
 
-  const dueDate = new Date(googleTask.due);
+  // Parse as local calendar day, not UTC
+  const dueDate = parseTaskDueDate(googleTask.due);
   const taskStatus: TaskStatus = googleTask.status ?? 'needsAction';
 
   return {
@@ -178,9 +190,7 @@ function transformGoogleTask(
 function transformToGoogleEvent(
   eventData: CreateEventData | UpdateEventData
 ): Partial<GoogleCalendarEvent> {
-  const colorConfig = eventData.color
-    ? EVENT_COLORS[eventData.color]
-    : EVENT_COLORS.default;
+  const colorConfig = eventData.color ? EVENT_COLORS[eventData.color] : EVENT_COLORS.default;
 
   const googleEvent: Partial<GoogleCalendarEvent> = {
     summary: eventData.title,
@@ -211,10 +221,7 @@ function transformToGoogleEvent(
 /**
  * Make authenticated request to Google Calendar API
  */
-async function makeRequest(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<Response> {
+async function makeRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
   let accessToken = await getAccessToken();
   if (!accessToken) {
     throw new Error('Not authenticated');
@@ -253,10 +260,7 @@ async function makeRequest(
   return response;
 }
 
-async function makeTasksRequest(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<Response> {
+async function makeTasksRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
   let accessToken = await getAccessToken();
   if (!accessToken) {
     throw new Error('Not authenticated');
@@ -309,7 +313,7 @@ export async function fetchCalendarEvents(
     const calendarsResponse = await makeRequest('/users/me/calendarList');
     const calendarsData = await calendarsResponse.json();
     const calendars = calendarsData.items || [];
-    
+
     console.log(`Found ${calendars.length} calendars`);
     calendars.forEach((cal: any) => {
       console.log(`Calendar: "${cal.summary}", ID: ${cal.colorId}, BG: ${cal.backgroundColor}`);
@@ -323,7 +327,7 @@ export async function fetchCalendarEvents(
           `/calendars/${encodeURIComponent(calendar.id)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`
         );
         const data: CalendarEventsResponse = await response.json();
-        return (data.items || []).map(item =>
+        return (data.items || []).map((item) =>
           transformGoogleEvent(item, calendar.backgroundColor)
         );
       } catch (err) {
@@ -334,12 +338,12 @@ export async function fetchCalendarEvents(
 
     const results = await Promise.all(eventPromises);
     const allEvents = results.flat();
-    
+
     // Sort events by start time
     allEvents.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-    
+
     console.log(`Total events found: ${allEvents.length}`);
-    
+
     return allEvents;
   } catch (error) {
     console.error('Error fetching calendar events:', error);
@@ -347,10 +351,7 @@ export async function fetchCalendarEvents(
   }
 }
 
-export async function fetchTaskItems(
-  startDate: Date,
-  endDate: Date
-): Promise<CalendarEvent[]> {
+export async function fetchTaskItems(startDate: Date, endDate: Date): Promise<CalendarEvent[]> {
   try {
     const dueMin = startDate.toISOString();
     const dueMax = endDate.toISOString();
