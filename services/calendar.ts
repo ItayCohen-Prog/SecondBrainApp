@@ -250,6 +250,10 @@ export async function fetchCalendarEvents(
 
     const results = await Promise.all(eventPromises);
     const allEvents = results.flat();
+    
+    // Sort events by start time
+    allEvents.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+    
     console.log(`Total events found: ${allEvents.length}`);
     
     return allEvents;

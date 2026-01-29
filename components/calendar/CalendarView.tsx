@@ -25,7 +25,7 @@ export function CalendarView({
     currentDate.toISOString().split('T')[0]
   );
 
-  // Group events by date
+  // Group events by date and sort by start time within each day
   const eventsByDate = useMemo(() => {
     const grouped: Record<string, CalendarEvent[]> = {};
     events.forEach((event) => {
@@ -42,6 +42,18 @@ export function CalendarView({
       }
       grouped[dateKey].push(event);
     });
+    
+    // Sort events within each day by start time (all-day events first, then by time)
+    Object.values(grouped).forEach((dayEvents) => {
+      dayEvents.sort((a, b) => {
+        // All-day events come first
+        if (a.isAllDay && !b.isAllDay) return -1;
+        if (!a.isAllDay && b.isAllDay) return 1;
+        // Then sort by start time
+        return a.startDate.getTime() - b.startDate.getTime();
+      });
+    });
+    
     return grouped;
   }, [events]);
 
