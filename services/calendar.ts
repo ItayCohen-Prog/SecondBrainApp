@@ -10,58 +10,39 @@ import { getAccessToken, refreshAccessToken } from './auth';
 
 const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
 
-function hexToRgb(hex: string) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
+type GoogleColorDefinition = {
+  background: string;
+  foreground: string;
+};
+
+type GoogleColorsResponse = {
+  calendar?: Record<string, GoogleColorDefinition>;
+  event?: Record<string, GoogleColorDefinition>;
+};
+
+async function fetchColorPalette(): Promise<GoogleColorsResponse> {
+  const response = await makeRequest('/colors');
+  return response.json();
 }
 
-function colorDistance(hex1: string, hex2: string) {
-  const rgb1 = hexToRgb(hex1);
-  const rgb2 = hexToRgb(hex2);
-  if (!rgb1 || !rgb2) return Infinity;
-  return Math.sqrt(
-    Math.pow(rgb1.r - rgb2.r, 2) +
-    Math.pow(rgb1.g - rgb2.g, 2) +
-    Math.pow(rgb1.b - rgb2.b, 2)
-  );
+async function fetchPrimaryCalendarInfo(): Promise<{ colorId?: string }> {
+  const response = await makeRequest('/users/me/calendarList/primary');
+  const data = await response.json();
+  return { colorId: data.colorId };
 }
 
-/**
- * Find closest vibrant EventColor hex from our palette
- */
-function findClosestVibrantColorHex(fadedHex: string): string {
-  let minDistance = Infinity;
-  let closestHex = EVENT_COLORS.default.hex;
+function resolveEventDisplayColor(
+  eventColorId: string | undefined,
+  calendarColorId: string | undefined,
+  palette: GoogleColorsResponse
+): string {
+  const eventColor = eventColorId ? palette.event?.[eventColorId]?.background : undefined;
+  if (eventColor) return eventColor;
 
-  Object.values(EVENT_COLORS).forEach((config) => {
-    // Skip default if you want specific colors, but default is also a valid vibrant blue
-    const distance = colorDistance(fadedHex, config.hex);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestHex = config.hex;
-    }
-  });
-  
-  return closestHex;
-}
+  const calendarColor = calendarColorId ? palette.calendar?.[calendarColorId]?.background : undefined;
+  if (calendarColor) return calendarColor;
 
-function findColorNameByHex(hex: string): CalendarEvent['color'] {
-  let minDistance = Infinity;
-  let closestColor: CalendarEvent['color'] = 'default';
-
-  Object.entries(EVENT_COLORS).forEach(([name, config]) => {
-    const distance = colorDistance(hex, config.hex);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestColor = name as CalendarEvent['color'];
-    }
-  });
-  
-  return closestColor;
+  return EVENT_COLORS.default.hex;
 }
 
 // ---------------------------
@@ -70,8 +51,8 @@ function findColorNameByHex(hex: string): CalendarEvent['color'] {
  * Transform Google Calendar event to app format
  */
 function transformGoogleEvent(
-  googleEvent: GoogleCalendarEvent, 
-  calendarColorHex?: string,
+  googleEvent: GoogleCalendarEvent,
+  colorPalette: GoogleColorsResponse,
   calendarColorId?: string
 ): CalendarEvent {
   const startDate = googleEvent.start.dateTime
@@ -84,38 +65,11 @@ function transformGoogleEvent(
 
   // Default setup
   let color: CalendarEvent['color'] = 'default';
-  let displayColor: string = EVENT_COLORS.default.hex;
-
-  // Helper to find config by ID
-  const findConfigById = (id: string) => Object.values(EVENT_COLORS).find(
-    (c) => c.googleColorId && String(c.googleColorId) === String(id)
+  const displayColor = resolveEventDisplayColor(
+    googleEvent.colorId,
+    calendarColorId,
+    colorPalette
   );
-
-  if (googleEvent.colorId) {
-    // Case 1: Event has specific color (Use exact ID match)
-    const colorConfig = findConfigById(googleEvent.colorId);
-    if (colorConfig) {
-      color = colorConfig.name;
-      displayColor = colorConfig.hex;
-    } else {
-      console.log('Unknown event colorId:', googleEvent.colorId);
-    }
-  } else if (calendarColorId) {
-    // Case 2: Inherit from Calendar ID (Use exact ID match)
-    const colorConfig = findConfigById(calendarColorId);
-    if (colorConfig) {
-      color = colorConfig.name;
-      displayColor = colorConfig.hex;
-    } else if (calendarColorHex) {
-      // Fallback: Use hex matching if ID not found (e.g. custom color)
-      displayColor = findClosestVibrantColorHex(calendarColorHex);
-      color = findColorNameByHex(displayColor);
-    }
-  } else if (calendarColorHex) {
-    // Case 3: Only have hex (e.g. custom color)
-    displayColor = findClosestVibrantColorHex(calendarColorHex);
-    color = findColorNameByHex(displayColor);
-  }
 
   return {
     id: googleEvent.id,
@@ -224,6 +178,8 @@ export async function fetchCalendarEvents(
     const timeMin = startDate.toISOString();
     const timeMax = endDate.toISOString();
 
+    const colorPalette = await fetchColorPalette();
+
     const calendarsResponse = await makeRequest('/users/me/calendarList');
     const calendarsData = await calendarsResponse.json();
     const calendars = calendarsData.items || [];
@@ -241,7 +197,9 @@ export async function fetchCalendarEvents(
           `/calendars/${encodeURIComponent(calendar.id)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`
         );
         const data: CalendarEventsResponse = await response.json();
-        return (data.items || []).map(item => transformGoogleEvent(item, calendar.backgroundColor, calendar.colorId));
+        return (data.items || []).map(item =>
+          transformGoogleEvent(item, colorPalette, calendar.colorId)
+        );
       } catch (err) {
         console.warn(`Failed to fetch events for calendar ${calendar.summary}`, err);
         return [];
@@ -271,7 +229,11 @@ export async function createEvent(eventData: CreateEventData): Promise<CalendarE
       body: JSON.stringify(googleEvent),
     });
     const createdEvent: GoogleCalendarEvent = await response.json();
-    return transformGoogleEvent(createdEvent);
+    const [colorPalette, primaryCalendar] = await Promise.all([
+      fetchColorPalette(),
+      fetchPrimaryCalendarInfo(),
+    ]);
+    return transformGoogleEvent(createdEvent, colorPalette, primaryCalendar.colorId);
   } catch (error) {
     console.error('Error creating event:', error);
     throw error;
@@ -287,7 +249,11 @@ export async function updateEvent(eventData: UpdateEventData): Promise<CalendarE
       body: JSON.stringify(googleEvent),
     });
     const updatedEvent: GoogleCalendarEvent = await response.json();
-    return transformGoogleEvent(updatedEvent);
+    const [colorPalette, primaryCalendar] = await Promise.all([
+      fetchColorPalette(),
+      fetchPrimaryCalendarInfo(),
+    ]);
+    return transformGoogleEvent(updatedEvent, colorPalette, primaryCalendar.colorId);
   } catch (error) {
     console.error('Error updating event:', error);
     throw error;
@@ -307,7 +273,11 @@ export async function getEvent(eventId: string): Promise<CalendarEvent> {
   try {
     const response = await makeRequest(`/calendars/primary/events/${eventId}`);
     const googleEvent: GoogleCalendarEvent = await response.json();
-    return transformGoogleEvent(googleEvent);
+    const [colorPalette, primaryCalendar] = await Promise.all([
+      fetchColorPalette(),
+      fetchPrimaryCalendarInfo(),
+    ]);
+    return transformGoogleEvent(googleEvent, colorPalette, primaryCalendar.colorId);
   } catch (error) {
     console.error('Error fetching event:', error);
     throw error;

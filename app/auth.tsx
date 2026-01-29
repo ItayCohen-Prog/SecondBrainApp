@@ -1,14 +1,17 @@
-import { StyleSheet, TouchableOpacity, ActivityIndicator, View } from 'react-native';
-import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useGoogleAuth } from '@/hooks/use-google-auth';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function AuthScreen() {
   const { authState, isLoading, error, signIn } = useGoogleAuth();
   const router = useRouter();
+  const errorBackgroundColor = useThemeColor({}, 'errorBackground');
+  const errorTextColor = useThemeColor({}, 'errorText');
 
   // Redirect to calendar if already authenticated
   useEffect(() => {
@@ -48,8 +51,10 @@ export default function AuthScreen() {
         </ThemedText>
 
         {error && (
-          <ThemedView style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error.message}</ThemedText>
+          <ThemedView style={[styles.errorContainer, { backgroundColor: errorBackgroundColor }]}>
+            <ThemedText style={[styles.errorText, { color: errorTextColor }]}>
+              {error.message}
+            </ThemedText>
           </ThemedView>
         )}
 

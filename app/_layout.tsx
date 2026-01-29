@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AppThemeProvider, useColorScheme } from '@/hooks/use-color-scheme';
 import { useGoogleAuth } from '@/hooks/use-google-auth';
 
 function RootLayoutNav() {
@@ -33,7 +33,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const colorScheme = useColorScheme();
 
   return (
@@ -41,5 +41,13 @@ export default function RootLayout() {
       <RootLayoutNav />
       <StatusBar style="auto" />
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <RootLayoutContent />
+    </AppThemeProvider>
   );
 }

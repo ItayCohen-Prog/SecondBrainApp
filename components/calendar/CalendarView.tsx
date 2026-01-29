@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { CalendarEvent, EVENT_COLORS } from '@/types/calendar';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -21,6 +22,7 @@ export function CalendarView({
   currentDate = new Date(),
 }: CalendarViewProps) {
   const colorScheme = useColorScheme();
+  const borderColor = useThemeColor({}, 'border');
   const [selectedDate, setSelectedDate] = useState(
     currentDate.toISOString().split('T')[0]
   );
@@ -57,10 +59,18 @@ export function CalendarView({
     return grouped;
   }, [events]);
 
+  const isDark = colorScheme === 'dark';
+  const dayTextColor = isDark ? '#ECEDEE' : '#11181C';
+
   // Create marked dates for calendar
   const markedDates = useMemo(() => {
     const marked: Record<string, any> = {};
     const today = new Date().toISOString().split('T')[0];
+    const selected = selectedDate
+      ? new Date(selectedDate)
+      : new Date(currentDate.toISOString().split('T')[0]);
+    const monthStart = new Date(selected.getFullYear(), selected.getMonth(), 1);
+    const monthEnd = new Date(selected.getFullYear(), selected.getMonth() + 1, 0);
 
     Object.keys(eventsByDate).forEach((dateKey) => {
       const dateEvents = eventsByDate[dateKey];
@@ -79,12 +89,38 @@ export function CalendarView({
             borderRadius: isToday ? 20 : 0,
           },
           text: {
-            color: isToday ? '#4285F4' : isSelected ? '#fff' : undefined,
+            color: isToday ? '#4285F4' : isSelected ? '#fff' : dayTextColor,
             fontWeight: isToday ? 'bold' : 'normal',
           },
         },
       };
     });
+
+    // Ensure all days in the current month get the correct text color
+    for (
+      let day = new Date(monthStart);
+      day <= monthEnd;
+      day.setDate(day.getDate() + 1)
+    ) {
+      const dateKey = day.toISOString().split('T')[0];
+      if (!marked[dateKey]) {
+        marked[dateKey] = {
+          customStyles: {
+            text: {
+              color: dayTextColor,
+            },
+          },
+        };
+      } else if (!marked[dateKey].customStyles?.text?.color) {
+        marked[dateKey].customStyles = {
+          ...(marked[dateKey].customStyles || {}),
+          text: {
+            ...(marked[dateKey].customStyles?.text || {}),
+            color: dayTextColor,
+          },
+        };
+      }
+    }
 
     // Mark today if no events
     if (!marked[today]) {
@@ -111,7 +147,7 @@ export function CalendarView({
     }
 
     return marked;
-  }, [eventsByDate, selectedDate]);
+  }, [eventsByDate, selectedDate, currentDate, dayTextColor]);
 
   const handleDayPress = (day: DateData) => {
     setSelectedDate(day.dateString);
@@ -122,7 +158,6 @@ export function CalendarView({
 
   const selectedDateEvents = eventsByDate[selectedDate] || [];
 
-  const isDark = colorScheme === 'dark';
   const theme = {
     backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
     calendarBackground: isDark ? '#1A1A1A' : '#FFFFFF',
@@ -130,7 +165,7 @@ export function CalendarView({
     selectedDayBackgroundColor: '#1A73E8',
     selectedDayTextColor: '#FFFFFF',
     todayTextColor: '#4285F4',
-    dayTextColor: isDark ? '#ECEDEE' : '#11181C',
+    dayTextColor,
     textDisabledColor: isDark ? '#3A3A3A' : '#D0D0D0',
     dotColor: '#4285F4',
     selectedDotColor: '#FFFFFF',
@@ -147,12 +182,13 @@ export function CalendarView({
   return (
     <ThemedView style={styles.container}>
       <Calendar
+        key={isDark ? 'calendar-dark' : 'calendar-light'}
         current={selectedDate}
         onDayPress={handleDayPress}
         markedDates={markedDates}
         markingType="custom"
         theme={theme}
-        style={styles.calendar}
+        style={[styles.calendar, { borderBottomColor: borderColor }]}
         enableSwipeMonths
         firstDay={0} // Sunday
         hideExtraDays
@@ -184,7 +220,6 @@ const styles = StyleSheet.create({
   },
   calendar: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
   eventsContainer: {
     flex: 1,

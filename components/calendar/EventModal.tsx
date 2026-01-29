@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { CalendarEvent, CreateEventData, EVENT_COLORS, EventColor, UpdateEventData } from '@/types/calendar';
 import { useEffect, useState } from 'react';
 import {
@@ -29,6 +30,11 @@ export function EventModal({
   onSave,
   onDelete,
 }: EventModalProps) {
+  const borderColor = useThemeColor({}, 'border');
+  const placeholderColor = useThemeColor({}, 'placeholder');
+  const errorBackgroundColor = useThemeColor({}, 'errorBackground');
+  const errorTextColor = useThemeColor({}, 'errorText');
+  const textColor = useThemeColor({}, 'text');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -122,7 +128,7 @@ export function EventModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <ThemedView style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: borderColor }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <ThemedText style={styles.cancelText}>Cancel</ThemedText>
           </TouchableOpacity>
@@ -140,9 +146,9 @@ export function EventModal({
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.section}>
             <TextInput
-              style={styles.titleInput}
+              style={[styles.titleInput, { borderBottomColor: borderColor, color: textColor }]}
               placeholder="Event title"
-              placeholderTextColor="#9BA1A6"
+              placeholderTextColor={placeholderColor}
               value={title}
               onChangeText={setTitle}
               autoFocus
@@ -151,7 +157,7 @@ export function EventModal({
 
           <View style={styles.section}>
             <TouchableOpacity
-              style={styles.dateTimeRow}
+              style={[styles.dateTimeRow, { borderBottomColor: borderColor }]}
               onPress={() => {
                 // TODO: Implement date/time picker
                 console.log('Date/time picker not implemented yet');
@@ -164,7 +170,7 @@ export function EventModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.dateTimeRow}
+              style={[styles.dateTimeRow, { borderBottomColor: borderColor }]}
               onPress={() => {
                 // TODO: Implement date/time picker
                 console.log('Date/time picker not implemented yet');
@@ -180,7 +186,12 @@ export function EventModal({
               style={styles.toggleRow}
               onPress={() => setIsAllDay(!isAllDay)}>
               <ThemedText style={styles.toggleLabel}>All day</ThemedText>
-              <View style={[styles.toggle, isAllDay && styles.toggleActive]}>
+              <View
+                style={[
+                  styles.toggle,
+                  { backgroundColor: borderColor },
+                  isAllDay && styles.toggleActive,
+                ]}>
                 {isAllDay && <View style={styles.toggleThumb} />}
               </View>
             </TouchableOpacity>
@@ -188,9 +199,9 @@ export function EventModal({
 
           <View style={styles.section}>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { borderBottomColor: borderColor, color: textColor }]}
               placeholder="Location (optional)"
-              placeholderTextColor="#9BA1A6"
+              placeholderTextColor={placeholderColor}
               value={location}
               onChangeText={setLocation}
             />
@@ -198,9 +209,13 @@ export function EventModal({
 
           <View style={styles.section}>
             <TextInput
-              style={[styles.textInput, styles.textArea]}
+              style={[
+                styles.textInput,
+                styles.textArea,
+                { borderBottomColor: borderColor, color: textColor },
+              ]}
               placeholder="Description (optional)"
-              placeholderTextColor="#9BA1A6"
+              placeholderTextColor={placeholderColor}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -237,10 +252,12 @@ export function EventModal({
           {event && onDelete && (
             <View style={styles.section}>
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={[styles.deleteButton, { backgroundColor: errorBackgroundColor }]}
                 onPress={handleDelete}
                 disabled={isSaving}>
-                <ThemedText style={styles.deleteText}>Delete Event</ThemedText>
+                <ThemedText style={[styles.deleteText, { color: errorTextColor }]}>
+                  Delete Event
+                </ThemedText>
               </TouchableOpacity>
             </View>
           )}

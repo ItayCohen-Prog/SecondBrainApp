@@ -1,19 +1,24 @@
-import { useState, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, RefreshControl, ScrollView, View } from 'react-native';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
 import { CalendarView } from '@/components/calendar/CalendarView';
 import { EventModal } from '@/components/calendar/EventModal';
-import { useCalendarEvents } from '@/hooks/use-calendar-events';
-import { useGoogleAuth } from '@/hooks/use-google-auth';
-import { CalendarEvent, CreateEventData, UpdateEventData } from '@/types/calendar';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useCalendarEvents } from '@/hooks/use-calendar-events';
+import { useThemeMode } from '@/hooks/use-color-scheme';
+import { useGoogleAuth } from '@/hooks/use-google-auth';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { CalendarEvent, CreateEventData, UpdateEventData } from '@/types/calendar';
 import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { DateData } from 'react-native-calendars';
 
 export default function CalendarScreen() {
   const router = useRouter();
   const { authState, signOut } = useGoogleAuth();
+  const errorBackgroundColor = useThemeColor({}, 'errorBackground');
+  const errorTextColor = useThemeColor({}, 'errorText');
+  const { mode, setMode } = useThemeMode();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -73,6 +78,12 @@ export default function CalendarScreen() {
     router.replace('/auth');
   };
 
+  const nextModeLabel = mode === 'light' ? 'Light' : 'Dark';
+  const handleToggleTheme = () => {
+    const nextMode = mode === 'light' ? 'dark' : 'light';
+    setMode(nextMode);
+  };
+
   if (!authState.isAuthenticated) {
     return null; // Will be redirected by layout
   }
@@ -80,9 +91,14 @@ export default function CalendarScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Calendar
-        </ThemedText>
+        <View style={styles.headerLeft}>
+          <ThemedText type="title" style={styles.headerTitle}>
+            Calendar
+          </ThemedText>
+          <TouchableOpacity onPress={handleToggleTheme} style={styles.themeToggle}>
+            <ThemedText style={styles.themeToggleText}>{nextModeLabel}</ThemedText>
+          </TouchableOpacity>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleSignOut} style={styles.headerButton}>
             <IconSymbol name="person.circle" size={24} />
@@ -96,8 +112,10 @@ export default function CalendarScreen() {
           <RefreshControl refreshing={isLoading} onRefresh={refresh} />
         }>
         {error && (
-          <ThemedView style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error.message}</ThemedText>
+          <ThemedView style={[styles.errorContainer, { backgroundColor: errorBackgroundColor }]}>
+            <ThemedText style={[styles.errorText, { color: errorTextColor }]}>
+              {error.message}
+            </ThemedText>
           </ThemedView>
         )}
 
@@ -137,11 +155,15 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
+  },
+  headerLeft: {
+    alignItems: 'flex-start',
+    gap: 6,
   },
   headerTitle: {
     fontSize: 28,
@@ -149,7 +171,18 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
+  },
+  themeToggle: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(66, 133, 244, 0.12)',
+  },
+  themeToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   headerButton: {
     padding: 4,
